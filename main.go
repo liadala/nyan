@@ -24,19 +24,20 @@ import (
 
 func main() {
 	basePath := flag.String("path", "./", "start path")
+	recursive := flag.Bool("R", false, "enable recursive directory traversal")
 	flag.Parse()
 
 	var builder strings.Builder
 	builder.WriteString(fmt.Sprintf("📁%s\n", *basePath))
 
-	if err := dirstruct(&builder, *basePath, " "); err != nil {
+	if err := dirstruct(&builder, *basePath, " ", *recursive); err != nil {
 		fmt.Println("cant create view:", err)
 	} else {
 		fmt.Print(builder.String())
 	}
 }
 
-func dirstruct(builder *strings.Builder, path string, prefix string) error {
+func dirstruct(builder *strings.Builder, path string, prefix string, recursive bool) error {
 	entries, err := os.ReadDir(path)
 	if err != nil {
 		return fmt.Errorf("cant read dir %s: %v", path, err)
@@ -51,12 +52,14 @@ func dirstruct(builder *strings.Builder, path string, prefix string) error {
 
 		if entry.IsDir() {
 			builder.WriteString(fmt.Sprintf("%s%s📁 %s\n", prefix, connector, entry.Name()))
-			newPrefix := prefix + "┃ "
-			if last {
-				newPrefix = prefix + "  "
-			}
-			if err := dirstruct(builder, filepath.Join(path, entry.Name()), newPrefix); err != nil {
-				return err
+			if recursive {
+				newPrefix := prefix + "┃ "
+				if last {
+					newPrefix = prefix + "  "
+				}
+				if err := dirstruct(builder, filepath.Join(path, entry.Name()), newPrefix, recursive); err != nil {
+					return err
+				}
 			}
 		} else {
 			builder.WriteString(fmt.Sprintf("%s%s%s %s\n", prefix, connector, "📄", entry.Name()))
